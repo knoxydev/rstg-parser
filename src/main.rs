@@ -9,6 +9,20 @@ use dotenv::dotenv;
 use std::env;
 
 
+async fn get_chats(client: Client) -> Result<(), Box<dyn std::error::Error>>
+{
+	let mut dialogs = client.iter_dialogs();
+	
+	while let Some(dialog) = dialogs.next().await.unwrap()
+	{		
+		let chat = dialog.chat();
+		println!("{} ({})", chat.name(), chat.id());
+	}
+
+	Ok(())
+} 
+
+
 #[tokio::main]
 async fn main()
 {
@@ -25,7 +39,7 @@ async fn main()
   }
 
   //Load or create a new session file
-  let session = Session::load_file("session.session").unwrap();
+  let session = Session::load_file_or_create("session.session").unwrap();
 
 	let config = Config
 	{
@@ -58,13 +72,7 @@ async fn main()
 	println!("Logged in as: {:?}", client.get_me().await.unwrap());
 
 
-	let mut dialogs = client.iter_dialogs();
-
-	while let Some(dialog) = dialogs.next().await.unwrap()
-	{
-		let chat = dialog.chat();
-		println!("{} ({})", chat.name(), chat.id());
-	}
+	get_chats(client).await.unwrap();
 }
 
 
