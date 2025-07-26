@@ -1,6 +1,7 @@
 #![allow(warnings)]
 
 use grammers_client::{Client, Config};
+use grammers_client::types::Chat as MainChat;
 use grammers_session::Session;
 
 use std::io::{self, Write};
@@ -9,17 +10,41 @@ use dotenv::dotenv;
 use std::env;
 
 
-async fn get_chats(client: Client) -> Result<(), Box<dyn std::error::Error>>
+#[derive(Debug)]
+struct ChatsBase
 {
+	users : Vec<MainChat>,
+	groups : Vec<MainChat>,
+	channels : Vec<MainChat>
+	
+} impl ChatsBase {
+	
+	fn new() -> Self
+	{
+	  Self {
+			users : Vec::new(),
+			groups : Vec::new(),
+			channels : Vec::new()
+		}
+	}
+}
+
+
+async fn get_chats(client: Client, chats_base: ChatsBase) -> Result<Vec<MainChat>, Box<dyn std::error::Error>>
+{
+	let mut groups_vec: Vec<MainChat> = Vec::new();
 	let mut dialogs = client.iter_dialogs();
 	
 	while let Some(dialog) = dialogs.next().await.unwrap()
 	{		
-		let chat = dialog.chat();
-		println!("{} ({})", chat.name(), chat.id());
+		match dialog.chat()
+		{
+			MainChat::Group(_) => groups_vec.push(dialog.chat().clone()),
+			_ => continue
+		}
 	}
 
-	Ok(())
+	Ok(groups_vec)
 } 
 
 
@@ -72,7 +97,20 @@ async fn main()
 	println!("Logged in as: {:?}", client.get_me().await.unwrap());
 
 
-	get_chats(client).await.unwrap();
+	let chats_base = ChatsBase::new(); 
+	
+
+	let chats_id: Vec<MainChat> = get_chats(client, chats_base).await.unwrap();
+
+
+
+
+
+	// let mut participants = client.iter_participants(&chats_id[0]);
+
+	// while let Some(participant) = participants.next().await? {
+	//   println!("{} has role {:?}", participant.user.first_name(), participant.role);
+	// }
 }
 
 
